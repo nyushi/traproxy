@@ -1,0 +1,4 @@
+traproxy/traproxy
+*coverage.out
+**/*.test
+.vagrant
