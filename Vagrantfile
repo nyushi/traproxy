@@ -15,4 +15,5 @@ apt-get install -y tinyproxy curl iptables telnet tcpdump
 SCRIPT
 
   config.vm.provision "shell", inline: script
+  config.vm.provision "docker", images: ["ubuntu"]
 end
