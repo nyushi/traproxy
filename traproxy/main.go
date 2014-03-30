@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/nyushi/traproxy"
 	"github.com/nyushi/traproxy/firewall"
 	"github.com/nyushi/traproxy/orgdst"
@@ -21,15 +22,23 @@ func (d *Destination) Port() string {
 	return port
 }
 
-var dst *Destination = nil
+var (
+	dst *Destination = nil
+)
 
 func main() {
+	var showVersion *bool = flag.Bool("V", false, "show version")
 	var withDocker *bool = flag.Bool("with-docker", false, "edit iptables rule for docker")
 	var withFirewall *bool = flag.Bool("with-fw", true, "edit iptables rule")
 	var forceDstAddr *string = flag.String("dstaddr", "", "DEBUG force set to destination address")
 	var proxyAddr *string = flag.String("proxyaddr", "", "proxy address")
 
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(traproxy.Version)
+		os.Exit(0)
+	}
 
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
