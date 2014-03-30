@@ -1,15 +1,16 @@
 package firewall
 
 import (
-	"log"
 	"os/exec"
-	"strings"
 )
 
 var (
-	ADD  = "-A"
-	DEL  = "-D"
-	rule = map[string][]string{
+	ADD              = "-A"
+	DEL              = "-D"
+	OUTPUT_CHAIN     = "OUTPUT"
+	PREROUTING_CHAIN = "PREROUTING"
+	DOCKER_IFNAME    = "docker0"
+	rule             = map[string][]string{
 		"http": []string{
 			"--dport", "80",
 			"--to-ports", "10080",
@@ -21,45 +22,72 @@ var (
 	}
 )
 
-func DoCommand(args ...string) {
-	path, err := exec.LookPath(args[0])
+type IPTablesCommand []string
+
+func (i *IPTablesCommand) Exec() ([]byte, error) {
+	path, err := exec.LookPath((*i)[0])
 	if err != nil {
-		log.Println(err)
-		return
+		return []byte{}, err
 	}
 
-	output, err := exec.Command(path, args[1:]...).CombinedOutput()
+	output, err := exec.Command(path, (*i)[1:]...).CombinedOutput()
 	if err != nil {
-		log.Println(strings.Join(args, " "))
-		log.Print(string(output))
+		return output, err
 	}
+	return output, nil
 }
 
-func IptablesGetCommands(mode string) (ret [][]string) {
+func iptablesGetCommands(mode, chain string, ifName *string) (ret [][]string) {
+	ret = [][]string{}
 	prefix := []string{
 		"iptables",
 		"-t", "nat",
 		mode,
-		//"PREROUTING",
-		"OUTPUT",
+		chain,
 		//"-i", "docker0",
 		"-j", "REDIRECT",
 		"-p", "tcp",
 	}
+	if ifName != nil {
+		prefix = append(prefix, "-i", *ifName)
+	}
 
 	for _, v := range rule {
-		ret = append(ret, append(prefix, v...))
+		p := make([]string, len(prefix))
+		copy(p, prefix)
+		ret = append(ret, append(p, v...))
 	}
 	return ret
 }
 
-func IptablesAdd() {
-	for _, v := range IptablesGetCommands(ADD) {
-		DoCommand(v...)
+func IptablesAdd() []IPTablesCommand {
+	cmds := []IPTablesCommand{}
+	for _, v := range iptablesGetCommands(ADD, OUTPUT_CHAIN, nil) {
+		cmds = append(cmds, v)
 	}
+	return cmds
 }
-func IptablesDel() {
-	for _, v := range IptablesGetCommands(DEL) {
-		DoCommand(v...)
+func IptablesDel() []IPTablesCommand {
+	cmds := []IPTablesCommand{}
+	for _, v := range iptablesGetCommands(DEL, OUTPUT_CHAIN, nil) {
+		cmds = append(cmds, v)
 	}
+	return cmds
+
+}
+
+func IptablesDockerAdd() []IPTablesCommand {
+	cmds := []IPTablesCommand{}
+	for _, v := range iptablesGetCommands(ADD, PREROUTING_CHAIN, &DOCKER_IFNAME) {
+		cmds = append(cmds, v)
+	}
+	return cmds
+
+}
+func IptablesDockerDel() []IPTablesCommand {
+	cmds := []IPTablesCommand{}
+	for _, v := range iptablesGetCommands(DEL, PREROUTING_CHAIN, &DOCKER_IFNAME) {
+		cmds = append(cmds, v)
+	}
+	return cmds
 }
