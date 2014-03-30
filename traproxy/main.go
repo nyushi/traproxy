@@ -47,8 +47,7 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	go func() {
-		<-sigc
+	tearDown := func() {
 		if *withFirewall {
 			cmds := firewall.IptablesDel()
 			if *withDocker {
@@ -58,7 +57,12 @@ func main() {
 				execIptables(c)
 			}
 		}
-		log.Fatal("finished")
+		log.Println("finished")
+		os.Exit(0)
+	}
+	go func() {
+		<-sigc
+		tearDown()
 	}()
 
 	if *withFirewall {
@@ -75,7 +79,11 @@ func main() {
 		d := Destination(*forceDstAddr)
 		dst = &d
 	}
-	testo(*proxyAddr)
+	err := startServer(*proxyAddr)
+	if err != nil {
+		log.Println(err)
+	}
+	tearDown()
 }
 
 func execIptables(cmd firewall.IPTablesCommand) {
@@ -139,16 +147,16 @@ func handleClient(proxyAddr string, client net.Conn) {
 	StartProxy(client, proxy)
 }
 
-func testo(proxyAddr string) {
+func startServer(proxyAddr string) error {
 	ln, err := net.Listen("tcp", ":10080")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	log.Println("start server")
 	for {
 		client, err := ln.Accept()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		go handleClient(proxyAddr, client)
