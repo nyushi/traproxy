@@ -5,7 +5,7 @@ traproxy/traproxy: $(SOURCES)
 
 
 test:
-	go test ./... -cover
+	go test ./...
 
 _test-cov:
 	@go test -coverprofile=traproxy_coverage.out .
