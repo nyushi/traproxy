@@ -10,6 +10,7 @@ test:
 _test-cov:
 	@go test -coverprofile=traproxy_coverage.out .
 	@go test -coverprofile=http_coverage.out ./http
+	@go test -coverprofile=firewall_coverage.out ./firewall
 	@echo "mode: set" > coverage.out
 	@grep -h -v "mode: set" *_coverage.out >> coverage.out
 
