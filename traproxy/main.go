@@ -24,6 +24,7 @@ func (d *Destination) Port() string {
 var dst *Destination = nil
 
 func main() {
+	var withDocker *bool = flag.Bool("with-docker", false, "edit iptables rule for docker")
 	var withFirewall *bool = flag.Bool("with-fw", true, "edit iptables rule")
 	var forceDstAddr *string = flag.String("dstaddr", "", "DEBUG force set to destination address")
 	var proxyAddr *string = flag.String("proxyaddr", "", "proxy address")
@@ -41,12 +42,18 @@ func main() {
 		<-sigc
 		if *withFirewall {
 			firewall.IptablesDel()
+			if *withDocker {
+				firewall.IptablesDockerDel()
+			}
 		}
 		log.Fatal("finished")
 	}()
 
 	if *withFirewall {
 		firewall.IptablesAdd()
+		if *withDocker {
+			firewall.IptablesDockerAdd()
+		}
 	}
 
 	if *forceDstAddr != "" {
