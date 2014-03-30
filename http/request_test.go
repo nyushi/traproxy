@@ -49,11 +49,11 @@ func TestRequestBuffer(t *testing.T) {
 		t.Errorf("size error: expected=3, got=%d", len(rb))
 	}
 	if !bytes.Equal(rb, testBytes) {
-		t.Error("data error: expected=%v, got=%v", testBytes, rb)
+		t.Errorf("data error: expected=%v, got=%v", testBytes, rb)
 	}
 }
 
-func TestRequestBufferReadRequest(t *testing.T) {
+func TestRequestBufferReadRequestHeader(t *testing.T) {
 	b := RequestBuffer([]byte{})
 	r, err := b.ReadRequestHeader()
 	if err != nil {
@@ -89,6 +89,36 @@ func TestRequestBufferReadRequest(t *testing.T) {
 	}
 	if !bytes.Equal(b, []byte("rest")) {
 		t.Errorf("invalid rest: expected='rest', got='%s'", string(b))
+	}
+}
+
+func TestRequestBufferReadRequestBody(t *testing.T) {
+	b := RequestBuffer([]byte{'1', '2', '3', '4'})
+	header := &RequestHeader{BodySize: 1, BodyRead: 0}
+	expected := "1"
+	got := string(b.ReadRequestBody(header))
+	if got != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
+	}
+
+	expected = "234"
+	got = string(b)
+	if string(b) != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
+	}
+
+	header.BodySize = 1000
+	header.BodyRead = 0
+	expected = "234"
+	got = string(b.ReadRequestBody(header))
+	if got != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
+	}
+
+	expected = ""
+	got = string(b)
+	if got != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
 	}
 }
 
@@ -158,7 +188,7 @@ var newRequestTests = []struct {
 	},
 }
 
-func TestRequest(t *testing.T) {
+func TestRequestHeader(t *testing.T) {
 	for _, v := range newRequestTests {
 		r, err := NewRequestHeader([]byte(v.in))
 		if err != nil {
@@ -176,7 +206,7 @@ func TestRequest(t *testing.T) {
 	}
 }
 
-func TestRequestReqLine(t *testing.T) {
+func TestRequestHeaderReqLine(t *testing.T) {
 	reqline := "GET / HTTP/1.0"
 	r, err := NewRequestHeader([]byte(string(reqline + "\r\n\r\n")))
 	if err != nil {
@@ -215,5 +245,65 @@ func TestRequestHeaderStr(t *testing.T) {
 			in,
 			headers,
 		)
+	}
+}
+
+func TestRequestHeaderBytes(t *testing.T) {
+	in := "GET / HTTP/1.1\r\n" +
+		"A: 1\r\n" +
+		"B: 2\r\n" +
+		"\r\n"
+	r, err := NewRequestHeader([]byte(string(in)))
+	if err != nil {
+		t.Error(err)
+	}
+
+	got := r.Bytes()
+	expected := "GET / HTTP/1.1\r\nA: 1\r\nB: 2\r\n\r\n"
+	if string(got) != expected {
+		t.Errorf("error at Bytes: expected=%s, got=%s",
+			string(expected),
+			string(got),
+		)
+
+	}
+}
+
+func TestRequestHeaderIsCompleted(t *testing.T) {
+	in := "GET / HTTP/1.1\r\n" +
+		"A: 1\r\n" +
+		"B: 2\r\n" +
+		"\r\n"
+	r, err := NewRequestHeader([]byte(string(in)))
+	if err != nil {
+		t.Error(err)
+	}
+	if !r.IsCompleted() {
+		t.Error("IsCompleted error: expected=true, got=false")
+	}
+
+	r.BodySize = 1
+	if r.IsCompleted() {
+		t.Error("IsCompleted error: expected=false, got=true")
+	}
+
+	r.BodyRead = 1
+	if !r.IsCompleted() {
+		t.Error("IsCompleted error: expected=true, got=false")
+	}
+}
+
+func TestRequestHeaderSetRequestURI(t *testing.T) {
+	in := "GET / HTTP/1.1\r\n" +
+		"A: 1\r\n" +
+		"B: 2\r\n" +
+		"\r\n"
+	r, err := NewRequestHeader([]byte(string(in)))
+	if err != nil {
+		t.Error(err)
+	}
+	r.SetRequestURI("/test")
+	if !bytes.Equal(r.ReqLineTokens[1], []byte("/test")) {
+		t.Errorf("error at SetRequestURI: expected=/test, got=%s", string(r.ReqLineTokens[1]))
 	}
 }
