@@ -41,18 +41,24 @@ func main() {
 	go func() {
 		<-sigc
 		if *withFirewall {
-			firewall.IptablesDel()
+			cmds := firewall.IptablesDel()
 			if *withDocker {
-				firewall.IptablesDockerDel()
+				cmds = append(cmds, firewall.IptablesDockerDel()...)
+			}
+			for _, c := range cmds {
+				execIptables(c)
 			}
 		}
 		log.Fatal("finished")
 	}()
 
 	if *withFirewall {
-		firewall.IptablesAdd()
+		cmds := firewall.IptablesAdd()
 		if *withDocker {
-			firewall.IptablesDockerAdd()
+			cmds = append(cmds, firewall.IptablesDockerAdd()...)
+		}
+		for _, c := range cmds {
+			execIptables(c)
 		}
 	}
 
@@ -63,6 +69,13 @@ func main() {
 	testo(*proxyAddr)
 }
 
+func execIptables(cmd firewall.IPTablesCommand) {
+	out, err := cmd.Exec()
+	if err != nil {
+		log.Println(cmd, string(out))
+		log.Fatal(err)
+	}
+}
 func getDst(c net.Conn) (Destination, error) {
 	if dst != nil {
 		return *dst, nil
