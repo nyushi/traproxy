@@ -17,27 +17,32 @@ func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 	t.buf = append(t.buf, in...)
 	out := []byte{}
 	rb := http.RequestBuffer(t.buf)
-	if t.processingRequest == nil {
-		req, err := rb.ReadRequestHeader()
-		if err != nil {
-			return []byte{}
-		}
-		t.processingRequest = req
-		for _, h := range req.Headers {
-			if bytes.Equal(bytes.ToLower(h[0]), []byte("host")) {
-				req.SetRequestURI("http://" + string(h[1]) + string(req.ReqLineTokens[1]))
+	for {
+		if t.processingRequest == nil {
+			req, err := rb.ReadRequestHeader()
+			if err != nil {
 				break
 			}
+			if req == nil {
+				break
+			}
+			t.processingRequest = req
+			for _, h := range req.Headers {
+				if bytes.Equal(bytes.ToLower(h[0]), []byte("host")) {
+					req.SetRequestURI("http://" + string(h[1]) + string(req.ReqLineTokens[1]))
+					break
+				}
+			}
+			out = append(out, req.Bytes()...)
 		}
-		out = append(out, req.Bytes()...)
-	}
 
-	if t.processingRequest != nil {
-		body := rb.ReadRequestBody(t.processingRequest)
-		if t.processingRequest.IsCompleted() {
-			t.processingRequest = nil
+		if t.processingRequest != nil {
+			body := rb.ReadRequestBody(t.processingRequest)
+			if t.processingRequest.IsCompleted() {
+				t.processingRequest = nil
+			}
+			out = append(out, body...)
 		}
-		out = append(out, body...)
 	}
 	return out
 }
