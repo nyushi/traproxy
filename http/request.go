@@ -29,7 +29,7 @@ func (rb *RequestBuffer) ReadRequestHeader() (*RequestHeader, error) {
 func (rb *RequestBuffer) ReadRequestBody(req *RequestHeader) []byte {
 	var body []byte
 	s := req.BodySize - req.BodyRead
-	if len(*rb) >= s {
+	if len(*rb) > s {
 		body = (*rb)[:s]
 		*rb = (*rb)[s:]
 	} else {
