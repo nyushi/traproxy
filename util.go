@@ -1,6 +1,7 @@
 package traproxy
 
 import (
+	"io"
 	"net"
 )
 
@@ -14,6 +15,9 @@ func Pipe(dst *net.TCPConn, src *net.TCPConn, f *func([]byte) []byte) error {
 		rsize, err := src.Read(rb)
 		if err != nil {
 			if isRecoverable(err) {
+				continue
+			}
+			if err == io.EOF {
 				continue
 			}
 			return err
