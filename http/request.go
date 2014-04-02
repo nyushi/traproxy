@@ -5,40 +5,38 @@ import (
 	"strconv"
 )
 
-type RequestBuffer []byte
+func ReadRequestHeader(rb []byte) ([]byte, *RequestHeader, error) {
+	headerEnd := bytes.Index(rb, eoh)
+	if headerEnd == -1 {
+		return rb, nil, nil
+	}
+	boundary := headerEnd + len(eoh)
+	reqBytes := rb[:boundary]
+	rest := rb[boundary:]
+
+	req, err := NewRequestHeader(reqBytes)
+	return rest, req, err
+}
+
+func ReadRequestBody(rb []byte, req *RequestHeader) ([]byte, []byte) {
+	var body []byte
+	var rest []byte
+	s := req.BodySize - req.BodyRead
+	if len(rb) > s {
+		body = rb[:s]
+		rest = rb[s:]
+	} else {
+		body = rb
+		rest = []byte{}
+	}
+	req.BodyRead += len(body)
+	return rest, body
+}
 
 var (
 	eol = []byte("\r\n")
 	eoh = append(eol, eol...)
 )
-
-func (rb *RequestBuffer) ReadRequestHeader() (*RequestHeader, error) {
-	headerEnd := bytes.Index(*rb, eoh)
-	if headerEnd == -1 {
-		return nil, nil
-	}
-	boundary := headerEnd + len(eoh)
-	reqBytes := (*rb)[:boundary]
-	rest := (*rb)[boundary:]
-	*rb = rest
-
-	req, err := NewRequestHeader(reqBytes)
-	return req, err
-}
-
-func (rb *RequestBuffer) ReadRequestBody(req *RequestHeader) []byte {
-	var body []byte
-	s := req.BodySize - req.BodyRead
-	if len(*rb) >= s {
-		body = (*rb)[:s]
-		*rb = (*rb)[s:]
-	} else {
-		body = *rb
-		*rb = []byte{}
-	}
-	req.BodyRead += len(body)
-	return body
-}
 
 type RequestHeader struct {
 	ReqLineTokens [][]byte

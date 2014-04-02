@@ -38,7 +38,6 @@ func Pipe(dst *net.TCPConn, src *net.TCPConn, f *func([]byte) []byte) error {
 			}
 		}
 	}
-	return nil
 }
 
 func isRecoverable(e error) bool {
