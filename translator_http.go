@@ -16,10 +16,10 @@ type HTTPTranslator struct {
 func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 	t.buf = append(t.buf, in...)
 	out := []byte{}
-	rb := http.RequestBuffer(t.buf)
 	for {
 		if t.processingRequest == nil {
-			req, err := rb.ReadRequestHeader()
+			rest, req, err := http.ReadRequestHeader(t.buf)
+			t.buf = rest
 			if err != nil {
 				break
 			}
@@ -37,8 +37,10 @@ func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 		}
 
 		if t.processingRequest != nil {
-			body := rb.ReadRequestBody(t.processingRequest)
+			rest, body := http.ReadRequestBody(t.buf, t.processingRequest)
+			t.buf = rest
 			if t.processingRequest.IsCompleted() {
+				println(string(t.processingRequest.ReqLine()))
 				t.processingRequest = nil
 			}
 			out = append(out, body...)

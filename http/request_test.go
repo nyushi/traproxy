@@ -38,43 +38,29 @@ func checkRequest(expected, got *RequestHeader) error {
 	return nil
 }
 
-func TestRequestBuffer(t *testing.T) {
-	testBytes := []byte{'1', '2', '3'}
-	rb := RequestBuffer{}
-	if len(rb) != 0 {
-		t.Errorf("size error: expected=0, got=%d", len(rb))
-	}
-	rb = append(rb, testBytes...)
-	if len([]byte(rb)) != 3 {
-		t.Errorf("size error: expected=3, got=%d", len(rb))
-	}
-	if !bytes.Equal(rb, testBytes) {
-		t.Errorf("data error: expected=%v, got=%v", testBytes, rb)
-	}
-}
-
-func TestRequestBufferReadRequestHeader(t *testing.T) {
-	b := RequestBuffer([]byte{})
-	r, err := b.ReadRequestHeader()
+func TestReadRequestHeader(t *testing.T) {
+	b := []byte{}
+	rest, req, err := ReadRequestHeader(b)
 	if err != nil {
 		t.Error(err)
 	}
-	if r != nil {
+	if req != nil {
 		t.Error("request is not nil")
 	}
 	if len(b) != 0 {
 		t.Error("rest size is not 0")
 	}
 
+	b = rest
 	b = append(b, []byte("GET / HTTP/1.1\r\n\r\nrest")...)
-	r, err = b.ReadRequestHeader()
+	rest, req, err = ReadRequestHeader(b)
 	if err != nil {
 		t.Error(err)
 	}
-	if r == nil {
+	if req == nil {
 		t.Error("request is nil")
 	}
-	err = checkRequest(r, &RequestHeader{
+	err = checkRequest(req, &RequestHeader{
 		ReqLineTokens: [][]byte{
 			[]byte("GET"),
 			[]byte("/"),
@@ -87,38 +73,39 @@ func TestRequestBufferReadRequestHeader(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(b, []byte("rest")) {
-		t.Errorf("invalid rest: expected='rest', got='%s'", string(b))
+	if !bytes.Equal(rest, []byte("rest")) {
+		t.Errorf("invalid rest: expected='rest', got='%s'", string(rest))
 	}
 }
 
-func TestRequestBufferReadRequestBody(t *testing.T) {
-	b := RequestBuffer([]byte{'1', '2', '3', '4'})
+func TestReadRequestBody(t *testing.T) {
+	b := []byte{'1', '2', '3', '4'}
 	header := &RequestHeader{BodySize: 1, BodyRead: 0}
 	expected := "1"
-	got := string(b.ReadRequestBody(header))
-	if got != expected {
-		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
+	rest, got := ReadRequestBody(b, header)
+	if string(got) != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, string(got))
 	}
 
 	expected = "234"
-	got = string(b)
-	if string(b) != expected {
-		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
+	got = rest
+	if string(got) != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, string(got))
 	}
 
+	b = rest
 	header.BodySize = 1000
 	header.BodyRead = 0
 	expected = "234"
-	got = string(b.ReadRequestBody(header))
-	if got != expected {
-		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
+	rest, got = ReadRequestBody(b, header)
+	if string(got) != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, string(got))
 	}
 
 	expected = ""
-	got = string(b)
-	if got != expected {
-		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, got)
+	got = rest
+	if string(got) != expected {
+		t.Errorf("error at ReadRequestBody: expected=%s, got=%s", expected, string(got))
 	}
 }
 
