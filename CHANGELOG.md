@@ -1,3 +1,8 @@
+## 0.1.2 (2014-04-03)
+ - fix pipeline
+ - fix connection handling
+ 
+
 ## 0.1.1 (2014-03-30)
  - fix error handling
 
