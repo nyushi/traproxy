@@ -40,7 +40,6 @@ func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 			rest, body := http.ReadRequestBody(t.buf, t.processingRequest)
 			t.buf = rest
 			if t.processingRequest.IsCompleted() {
-				println(string(t.processingRequest.ReqLine()))
 				t.processingRequest = nil
 			}
 			out = append(out, body...)
