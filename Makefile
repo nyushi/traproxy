@@ -1,7 +1,9 @@
 SOURCES=$(shell find . -name '*.go')
 
-traproxy/traproxy: $(SOURCES)
+traproxy/traproxy: $(SOURCES) VERSION
+	./version.sh set
 	cd traproxy && go build
+	./version.sh unset
 
 
 test:

@@ -1,3 +1,3 @@
 package traproxy
 
-var Version = "0.1.2"
+var Version = "__VERSION__"
