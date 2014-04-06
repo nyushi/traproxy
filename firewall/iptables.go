@@ -44,7 +44,6 @@ func iptablesGetCommands(mode, chain string, ifName *string) (ret [][]string) {
 		"-t", "nat",
 		mode,
 		chain,
-		//"-i", "docker0",
 		"-j", "REDIRECT",
 		"-p", "tcp",
 	}
