@@ -47,31 +47,39 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
+	localAddrs, err := firewall.LocalAddrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	excludeAddrs := firewall.GrepV4Addr(localAddrs)
+	redirectRules := firewall.GetRedirectRules(excludeAddrs)
+	if *withDocker {
+		redirectRules = append(
+			redirectRules,
+			firewall.GetRedirectDockerRules(excludeAddrs)...)
+	}
+
 	tearDown := func() {
 		if *withFirewall {
-			cmds := firewall.IptablesDel()
-			if *withDocker {
-				cmds = append(cmds, firewall.IptablesDockerDel()...)
-			}
-			for _, c := range cmds {
-				execIptables(c)
+			for _, r := range redirectRules {
+				log.Println(r.GetCommandStr())
+				r.Del()
 			}
 		}
 		log.Println("finished")
 		os.Exit(0)
 	}
+
 	go func() {
 		<-sigc
 		tearDown()
 	}()
 
 	if *withFirewall {
-		cmds := firewall.IptablesAdd()
-		if *withDocker {
-			cmds = append(cmds, firewall.IptablesDockerAdd()...)
-		}
-		for _, c := range cmds {
-			execIptables(c)
+		for _, r := range redirectRules {
+			log.Println(r.GetCommandStr())
+			r.Add()
 		}
 	}
 
@@ -79,20 +87,13 @@ func main() {
 		d := Destination(*forceDstAddr)
 		dst = &d
 	}
-	err := startServer(*proxyAddr)
+	err = startServer(*proxyAddr)
 	if err != nil {
 		log.Println(err)
 	}
 	tearDown()
 }
 
-func execIptables(cmd firewall.IPTablesCommand) {
-	out, err := cmd.Exec()
-	if err != nil {
-		log.Println(cmd, string(out))
-		log.Fatal(err)
-	}
-}
 func getDst(c net.Conn) (Destination, error) {
 	if dst != nil {
 		return *dst, nil
