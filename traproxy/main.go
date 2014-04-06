@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 )
 
@@ -26,15 +27,29 @@ var (
 	dst *Destination = nil
 )
 
+type excludeOptions []string
+
+func (e *excludeOptions) String() string {
+	return fmt.Sprint(*e)
+}
+func (e *excludeOptions) Set(val string) error {
+	for _, v := range strings.Split(val, ",") {
+		*e = append(*e, v)
+	}
+	return nil
+}
+
 func main() {
 	var showVersion *bool = flag.Bool("V", false, "show version")
 	var withDocker *bool = flag.Bool("with-docker", false, "edit iptables rule for docker")
 	var withFirewall *bool = flag.Bool("with-fw", true, "edit iptables rule")
 	var forceDstAddr *string = flag.String("dstaddr", "", "DEBUG force set to destination address")
 	var proxyAddr *string = flag.String("proxyaddr", "", "proxy address")
-
+	var excludeAddrs excludeOptions
+	flag.Var(&excludeAddrs, "exclude", "network addr to exclude")
 	flag.Parse()
 
+	log.Println(excludeAddrs)
 	if *showVersion {
 		fmt.Println(traproxy.Version)
 		os.Exit(0)
@@ -52,7 +67,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	excludeAddrs := firewall.GrepV4Addr(localAddrs)
+	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
 	if *withDocker {
 		redirectRules = append(
