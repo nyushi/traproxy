@@ -47,11 +47,19 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
+	localAddrs, err := firewall.LocalAddrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	excludeAddrs := firewall.GrepV4Addr(localAddrs)
+	log.Println(excludeAddrs)
+
 	tearDown := func() {
 		if *withFirewall {
-			cmds := firewall.IptablesDel()
+			cmds := firewall.IptablesDel(excludeAddrs)
 			if *withDocker {
-				cmds = append(cmds, firewall.IptablesDockerDel()...)
+				cmds = append(cmds, firewall.IptablesDockerDel(excludeAddrs)...)
 			}
 			for _, c := range cmds {
 				execIptables(c)
@@ -60,15 +68,16 @@ func main() {
 		log.Println("finished")
 		os.Exit(0)
 	}
+
 	go func() {
 		<-sigc
 		tearDown()
 	}()
 
 	if *withFirewall {
-		cmds := firewall.IptablesAdd()
+		cmds := firewall.IptablesAdd(excludeAddrs)
 		if *withDocker {
-			cmds = append(cmds, firewall.IptablesDockerAdd()...)
+			cmds = append(cmds, firewall.IptablesDockerAdd(excludeAddrs)...)
 		}
 		for _, c := range cmds {
 			execIptables(c)
@@ -79,7 +88,7 @@ func main() {
 		d := Destination(*forceDstAddr)
 		dst = &d
 	}
-	err := startServer(*proxyAddr)
+	err = startServer(*proxyAddr)
 	if err != nil {
 		log.Println(err)
 	}
