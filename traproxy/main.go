@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 )
 
@@ -26,15 +27,29 @@ var (
 	dst *Destination = nil
 )
 
+type excludeOptions []string
+
+func (e *excludeOptions) String() string {
+	return fmt.Sprint(*e)
+}
+func (e *excludeOptions) Set(val string) error {
+	for _, v := range strings.Split(val, ",") {
+		*e = append(*e, v)
+	}
+	return nil
+}
+
 func main() {
 	var showVersion *bool = flag.Bool("V", false, "show version")
 	var withDocker *bool = flag.Bool("with-docker", false, "edit iptables rule for docker")
 	var withFirewall *bool = flag.Bool("with-fw", true, "edit iptables rule")
 	var forceDstAddr *string = flag.String("dstaddr", "", "DEBUG force set to destination address")
 	var proxyAddr *string = flag.String("proxyaddr", "", "proxy address")
-
+	var excludeAddrs excludeOptions
+	flag.Var(&excludeAddrs, "exclude", "network addr to exclude")
 	flag.Parse()
 
+	log.Println(excludeAddrs)
 	if *showVersion {
 		fmt.Println(traproxy.Version)
 		os.Exit(0)
@@ -47,31 +62,39 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
+	localAddrs, err := firewall.LocalAddrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
+	redirectRules := firewall.GetRedirectRules(excludeAddrs)
+	if *withDocker {
+		redirectRules = append(
+			redirectRules,
+			firewall.GetRedirectDockerRules(excludeAddrs)...)
+	}
+
 	tearDown := func() {
 		if *withFirewall {
-			cmds := firewall.IptablesDel()
-			if *withDocker {
-				cmds = append(cmds, firewall.IptablesDockerDel()...)
-			}
-			for _, c := range cmds {
-				execIptables(c)
+			for _, r := range redirectRules {
+				log.Println(r.GetCommandStr())
+				r.Del()
 			}
 		}
 		log.Println("finished")
 		os.Exit(0)
 	}
+
 	go func() {
 		<-sigc
 		tearDown()
 	}()
 
 	if *withFirewall {
-		cmds := firewall.IptablesAdd()
-		if *withDocker {
-			cmds = append(cmds, firewall.IptablesDockerAdd()...)
-		}
-		for _, c := range cmds {
-			execIptables(c)
+		for _, r := range redirectRules {
+			log.Println(r.GetCommandStr())
+			r.Add()
 		}
 	}
 
@@ -79,20 +102,13 @@ func main() {
 		d := Destination(*forceDstAddr)
 		dst = &d
 	}
-	err := startServer(*proxyAddr)
+	err = startServer(*proxyAddr)
 	if err != nil {
 		log.Println(err)
 	}
 	tearDown()
 }
 
-func execIptables(cmd firewall.IPTablesCommand) {
-	out, err := cmd.Exec()
-	if err != nil {
-		log.Println(cmd, string(out))
-		log.Fatal(err)
-	}
-}
 func getDst(c net.Conn) (Destination, error) {
 	if dst != nil {
 		return *dst, nil
