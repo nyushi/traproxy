@@ -1,7 +1,6 @@
 package firewall
 
 import (
-	"log"
 	"net"
 	"os/exec"
 	"strings"
@@ -27,107 +26,48 @@ var (
 	}
 )
 
-type IPTablesCommand []string
+type IPTablesRule []string
 
-func (i *IPTablesCommand) Exec() ([]byte, error) {
-	log.Println(strings.Join(*i, " "))
-	path, err := exec.LookPath((*i)[0])
+func (r *IPTablesRule) exec() ([]byte, error) {
+	path, err := exec.LookPath("iptables")
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
-
-	output, err := exec.Command(path, (*i)[1:]...).CombinedOutput()
-	if err != nil {
-		return output, err
-	}
-	return output, nil
+	output, err := exec.Command(path, *r...).CombinedOutput()
+	return output, err
+}
+func (r *IPTablesRule) Add() {
+	*r = append([]string{"-A"}, *r...)
+	r.exec()
+}
+func (r *IPTablesRule) Del() {
+	*r = append([]string{"-D"}, *r...)
+	r.exec()
+}
+func (r *IPTablesRule) GetCommandStr() string {
+	return "iptables " + strings.Join(*r, " ")
 }
 
-func iptablesGetCommands(mode, chain, jump string, withRule bool, ifName, dst *string) (ret [][]string) {
-	ret = [][]string{}
-	prefix := []string{
-		"iptables",
-		"-t", "nat",
-		mode,
-		chain,
-		"-j", jump,
-		"-p", "tcp",
-	}
-	if ifName != nil {
-		prefix = append(prefix, "-i", *ifName)
-	}
-	if dst != nil {
-		prefix = append(prefix, "-d", *dst)
+func GetRedirectRules(excludes []string) []IPTablesRule {
+	rules := []IPTablesRule{}
+	for _, addr := range excludes {
+		rules = append(rules, []string{OUTPUT_CHAIN, "-t", "nat", "-p", "tcp", "-j", ACCEPT, "-d", addr})
 	}
 
-	if !withRule {
-		p := make([]string, len(prefix))
-		copy(p, prefix)
-		ret = append(ret, p)
-		return ret
-	}
-	for _, v := range rule {
-		p := make([]string, len(prefix))
-		copy(p, prefix)
-		ret = append(ret, append(p, v...))
-	}
-	return ret
+	rules = append(rules, []string{OUTPUT_CHAIN, "-t", "nat", "-p", "tcp", "-j", REDIRECT, "--dport", "80", "--to-ports", "10080"})
+	rules = append(rules, []string{OUTPUT_CHAIN, "-t", "nat", "-p", "tcp", "-j", REDIRECT, "--dport", "443", "--to-ports", "10080"})
+	return rules
 }
 
-func IptablesAdd(excludes []string) []IPTablesCommand {
-	cmds := []IPTablesCommand{}
-	for _, exc := range excludes {
-		for _, v := range iptablesGetCommands(ADD, OUTPUT_CHAIN, ACCEPT, false, nil, &exc) {
-			cmds = append(cmds, v)
-		}
-	}
-	for _, v := range iptablesGetCommands(ADD, OUTPUT_CHAIN, REDIRECT, true, nil, nil) {
-		cmds = append(cmds, v)
-	}
-	return cmds
-}
-
-func IptablesDel(excludes []string) []IPTablesCommand {
-	cmds := []IPTablesCommand{}
-	for _, exc := range excludes {
-		for _, v := range iptablesGetCommands(DEL, OUTPUT_CHAIN, ACCEPT, false, nil, &exc) {
-			cmds = append(cmds, v)
-		}
+func GetRedirectDockerRules(excludes []string) []IPTablesRule {
+	rules := []IPTablesRule{}
+	for _, addr := range excludes {
+		rules = append(rules, []string{PREROUTING_CHAIN, "-t", "nat", "-p", "tcp", "-j", ACCEPT, "-d", addr, "-i", DOCKER_IFNAME})
 	}
 
-	for _, v := range iptablesGetCommands(DEL, OUTPUT_CHAIN, REDIRECT, true, nil, nil) {
-		cmds = append(cmds, v)
-	}
-	return cmds
-
-}
-
-func IptablesDockerAdd(excludes []string) []IPTablesCommand {
-	cmds := []IPTablesCommand{}
-	for _, exc := range excludes {
-		for _, v := range iptablesGetCommands(ADD, PREROUTING_CHAIN, ACCEPT, false, &DOCKER_IFNAME, &exc) {
-			cmds = append(cmds, v)
-		}
-	}
-
-	for _, v := range iptablesGetCommands(ADD, PREROUTING_CHAIN, REDIRECT, true, &DOCKER_IFNAME, nil) {
-		cmds = append(cmds, v)
-	}
-	return cmds
-
-}
-func IptablesDockerDel(excludes []string) []IPTablesCommand {
-	cmds := []IPTablesCommand{}
-	for _, exc := range excludes {
-		for _, v := range iptablesGetCommands(DEL, PREROUTING_CHAIN, ACCEPT, false, &DOCKER_IFNAME, &exc) {
-			cmds = append(cmds, v)
-		}
-	}
-
-	for _, v := range iptablesGetCommands(DEL, PREROUTING_CHAIN, REDIRECT, true, &DOCKER_IFNAME, nil) {
-		cmds = append(cmds, v)
-	}
-	return cmds
+	rules = append(rules, []string{PREROUTING_CHAIN, "-t", "nat", "-p", "tcp", "-j", REDIRECT, "--dport", "80", "--to-ports", "10080", "-i", DOCKER_IFNAME})
+	rules = append(rules, []string{PREROUTING_CHAIN, "-t", "nat", "-p", "tcp", "-j", REDIRECT, "--dport", "443", "--to-ports", "10080", "-i", DOCKER_IFNAME})
+	return rules
 }
 
 func LocalAddrs() ([]string, error) {

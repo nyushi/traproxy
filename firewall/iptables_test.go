@@ -1,89 +1,8 @@
 package firewall
 
 import (
-	"strings"
 	"testing"
 )
-
-func TestIptablesAdd(t *testing.T) {
-	var expected string
-	var got string
-
-	cmds := IptablesAdd([]string{})
-	if len(cmds) != 2 {
-		t.Error("command size if not 2")
-	}
-	expected = "iptables -t nat -A OUTPUT -j REDIRECT -p tcp --dport 80 --to-ports 10080"
-	got = strings.Join(cmds[0], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-	expected = "iptables -t nat -A OUTPUT -j REDIRECT -p tcp --dport 443 --to-ports 10080"
-	got = strings.Join(cmds[1], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-}
-
-func TestIptablesDel(t *testing.T) {
-	var expected string
-	var got string
-
-	cmds := IptablesDel([]string{})
-	if len(cmds) != 2 {
-		t.Error("command size if not 2")
-	}
-	expected = "iptables -t nat -D OUTPUT -j REDIRECT -p tcp --dport 80 --to-ports 10080"
-	got = strings.Join(cmds[0], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-	expected = "iptables -t nat -D OUTPUT -j REDIRECT -p tcp --dport 443 --to-ports 10080"
-	got = strings.Join(cmds[1], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-}
-
-func TestIptablesDockerAdd(t *testing.T) {
-	var expected string
-	var got string
-
-	cmds := IptablesDockerAdd([]string{})
-	if len(cmds) != 2 {
-		t.Error("command size if not 2")
-	}
-	expected = "iptables -t nat -A PREROUTING -j REDIRECT -p tcp -i docker0 --dport 80 --to-ports 10080"
-	got = strings.Join(cmds[0], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-	expected = "iptables -t nat -A PREROUTING -j REDIRECT -p tcp -i docker0 --dport 443 --to-ports 10080"
-	got = strings.Join(cmds[1], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-}
-
-func TestIptablesDockerDel(t *testing.T) {
-	var expected string
-	var got string
-
-	cmds := IptablesDockerDel([]string{})
-	if len(cmds) != 2 {
-		t.Error("command size if not 2")
-	}
-	expected = "iptables -t nat -D PREROUTING -j REDIRECT -p tcp -i docker0 --dport 80 --to-ports 10080"
-	got = strings.Join(cmds[0], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-	expected = "iptables -t nat -D PREROUTING -j REDIRECT -p tcp -i docker0 --dport 443 --to-ports 10080"
-	got = strings.Join(cmds[1], " ")
-	if got != expected {
-		t.Errorf("expected=%s, got=%s", expected, got)
-	}
-}
 
 func TestLocalNetworks(t *testing.T) {
 	_, err := LocalAddrs()
@@ -105,4 +24,43 @@ func TestGrepV4Addr(t *testing.T) {
 		t.Error("second element is not 192.168.0.1")
 	}
 
+}
+
+func TestIPTablesRule(t *testing.T) {
+	r := IPTablesRule{"OUTPUT"}
+	if r.GetCommandStr() != "iptables OUTPUT" {
+		t.Error("not match")
+	}
+	r = append(r, []string{"opt", "val"}...)
+	if r.GetCommandStr() != "iptables OUTPUT opt val" {
+		t.Error("not match")
+	}
+}
+
+func TestGetRedirectRules(t *testing.T) {
+	rules := GetRedirectRules([]string{"127.0.0.1/8"})
+	got := ""
+	expected := "iptables OUTPUT -t nat -p tcp -j ACCEPT -d 127.0.0.1/8\n"
+	expected += "iptables OUTPUT -t nat -p tcp -j REDIRECT --dport 80 --to-ports 10080\n"
+	expected += "iptables OUTPUT -t nat -p tcp -j REDIRECT --dport 443 --to-ports 10080\n"
+	for _, r := range rules {
+		got += r.GetCommandStr() + "\n"
+	}
+	if got != expected {
+		t.Error(got, expected)
+	}
+}
+
+func TestGetRedirectDockerRules(t *testing.T) {
+	rules := GetRedirectDockerRules([]string{"127.0.0.1/8"})
+	got := ""
+	expected := "iptables PREROUTING -t nat -p tcp -j ACCEPT -d 127.0.0.1/8 -i docker0\n"
+	expected += "iptables PREROUTING -t nat -p tcp -j REDIRECT --dport 80 --to-ports 10080 -i docker0\n"
+	expected += "iptables PREROUTING -t nat -p tcp -j REDIRECT --dport 443 --to-ports 10080 -i docker0\n"
+	for _, r := range rules {
+		got += r.GetCommandStr() + "\n"
+	}
+	if got != expected {
+		t.Error(got, expected)
+	}
 }
