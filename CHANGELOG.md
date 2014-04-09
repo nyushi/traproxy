@@ -1,3 +1,7 @@
+## 0.1.4 (2014-04-10)
+ - fix handling for fragmented http request
+ 
+ 
 ## 0.1.3 (2014-04-07)
  - exclude local networks from proxy target
  - add exclude option

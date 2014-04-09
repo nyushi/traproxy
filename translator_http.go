@@ -44,6 +44,9 @@ func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 			}
 			out = append(out, body...)
 		}
+		if len(t.buf) == 0 {
+			break
+		}
 	}
 	return out
 }

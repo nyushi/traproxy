@@ -1,3 +1,6 @@
 package traproxy
 
-var Version = "__VERSION__"
+var (
+	Version string
+	GitHash string
+)

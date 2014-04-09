@@ -1,9 +1,9 @@
 SOURCES=$(shell find . -name '*.go')
+VERSION=$(shell cat VERSION)
+GITHASH=$(shell git rev-parse HEAD)
 
 traproxy/traproxy: $(SOURCES) VERSION
-	./version.sh set
-	cd traproxy && go build
-	./version.sh unset
+	cd traproxy && go build -ldflags "-X github.com/nyushi/traproxy.Version $(VERSION) -X github.com/nyushi/traproxy.GitHash $(GITHASH)"
 
 
 test:

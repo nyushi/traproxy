@@ -49,9 +49,8 @@ func main() {
 	flag.Var(&excludeAddrs, "exclude", "network addr to exclude")
 	flag.Parse()
 
-	log.Println(excludeAddrs)
 	if *showVersion {
-		fmt.Println(traproxy.Version)
+		fmt.Printf("%s(%s)\n", traproxy.Version, traproxy.GitHash)
 		os.Exit(0)
 	}
 
