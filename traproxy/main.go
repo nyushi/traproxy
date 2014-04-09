@@ -51,7 +51,7 @@ func main() {
 
 	log.Println(excludeAddrs)
 	if *showVersion {
-		fmt.Println(traproxy.Version)
+		fmt.Printf("%s(%s)\n", traproxy.Version, traproxy.GitHash)
 		os.Exit(0)
 	}
 
