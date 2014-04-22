@@ -41,12 +41,12 @@ func (t *HTTPSTranslator) prepare() error {
 }
 
 func (t *HTTPSTranslator) Start() error {
-	err := t.prepare()
+	client, proxy, err := t.CheckSockets()
 	if err != nil {
 		return err
 	}
 
-	client, proxy, err := t.CheckSockets()
+	err = t.prepare()
 	if err != nil {
 		return err
 	}
