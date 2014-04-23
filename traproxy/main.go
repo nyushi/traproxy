@@ -66,6 +66,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	excludeAddrs = append(excludeAddrs, *proxyAddr)
 	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
 	if *withDocker {
