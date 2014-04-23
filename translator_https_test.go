@@ -21,15 +21,14 @@ func getHTTPSTranslator(network, endpoint string) (client, proxy *net.TCPConn, t
 		Proxy:  b.B,
 		Dst:    "example.com",
 	}
-	client, client_ok := a.A.(*net.TCPConn)
-	proxy, proxy_ok := b.A.(*net.TCPConn)
-	if client_ok && proxy_ok {
+	client, clientOk := a.A.(*net.TCPConn)
+	proxy, proxyOk := b.A.(*net.TCPConn)
+	if clientOk && proxyOk {
 		return client, proxy, &HTTPSTranslator{base}, nil
-	} else {
-		return nil, nil, &HTTPSTranslator{base}, nil
 	}
-
+	return nil, nil, &HTTPSTranslator{base}, nil
 }
+
 func TestHTTPSTranslatorStartSuccess(t *testing.T) {
 	client, proxy, trans, err := getHTTPSTranslator("tcp", "127.0.0.1:12345")
 	if err != nil {

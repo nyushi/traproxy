@@ -5,6 +5,7 @@ import (
 	"strconv"
 )
 
+// ReadRequestHeader reads header information from bytes
 func ReadRequestHeader(rb []byte) ([]byte, *RequestHeader, error) {
 	headerEnd := bytes.Index(rb, eoh)
 	if headerEnd == -1 {
@@ -18,6 +19,7 @@ func ReadRequestHeader(rb []byte) ([]byte, *RequestHeader, error) {
 	return rest, req, err
 }
 
+// ReadRequestBody reads request body from bytes
 func ReadRequestBody(rb []byte, req *RequestHeader) ([]byte, []byte) {
 	var body []byte
 	var rest []byte
@@ -38,6 +40,7 @@ var (
 	eoh = append(eol, eol...)
 )
 
+// RequestHeader represents HTTP Request Header
 type RequestHeader struct {
 	ReqLineTokens [][]byte
 	Headers       [][][]byte
@@ -45,6 +48,7 @@ type RequestHeader struct {
 	BodyRead      int
 }
 
+// NewRequestHeader returns RequestHeader from bytes
 func NewRequestHeader(b []byte) (*RequestHeader, error) {
 	lines := bytes.Split(b, eol)
 	reqline := bytes.Split(lines[0], []byte{' '})
@@ -77,6 +81,7 @@ func NewRequestHeader(b []byte) (*RequestHeader, error) {
 	return r, nil
 }
 
+// Bytes returns byte slice of RequestHeader
 func (r *RequestHeader) Bytes() []byte {
 	lines := [][]byte{}
 	lines = append(lines, bytes.Join(r.ReqLineTokens, []byte{' '}))
@@ -89,14 +94,17 @@ func (r *RequestHeader) Bytes() []byte {
 	return out
 }
 
+// SetRequestURI sets uri to RequestHeader
 func (r *RequestHeader) SetRequestURI(uri string) {
 	r.ReqLineTokens[1] = []byte(uri)
 }
 
+// ReqLine returns request line bytes
 func (r *RequestHeader) ReqLine() []byte {
 	return bytes.Join(r.ReqLineTokens, []byte{' '})
 }
 
+// HeadersStr returns header strings
 func (r *RequestHeader) HeadersStr() [][]string {
 	headerStr := [][]string{}
 	for _, header := range r.Headers {
@@ -109,6 +117,7 @@ func (r *RequestHeader) HeadersStr() [][]string {
 	return headerStr
 }
 
+// IsCompleted returns request status
 func (r *RequestHeader) IsCompleted() bool {
 	return r.BodySize == r.BodyRead
 }

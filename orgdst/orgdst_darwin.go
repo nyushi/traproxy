@@ -6,6 +6,7 @@ import (
 	"syscall"
 )
 
+// GetOriginalDst returns original destination of Conn
 func GetOriginalDst(c net.Conn) (string, error) {
 	tcp, ok := c.(*net.TCPConn)
 	if !ok {

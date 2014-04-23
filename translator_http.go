@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// HTTPTranslator is translator for http connection
 type HTTPTranslator struct {
 	TranslatorBase
 
@@ -51,6 +52,7 @@ func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 	return out
 }
 
+// Start starts translation for http
 func (t *HTTPTranslator) Start() error {
 	t.buf = []byte{}
 

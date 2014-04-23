@@ -15,16 +15,16 @@ import (
 	"syscall"
 )
 
-type Destination string
+type destination string
 
-func (d *Destination) Port() string {
+func (d *destination) Port() string {
 	str := string(*d)
 	_, port, _ := net.SplitHostPort(str)
 	return port
 }
 
 var (
-	dst *Destination = nil
+	dst *destination
 )
 
 type excludeOptions []string
@@ -40,11 +40,11 @@ func (e *excludeOptions) Set(val string) error {
 }
 
 func main() {
-	var showVersion *bool = flag.Bool("V", false, "show version")
-	var withDocker *bool = flag.Bool("with-docker", false, "edit iptables rule for docker")
-	var withFirewall *bool = flag.Bool("with-fw", true, "edit iptables rule")
-	var forceDstAddr *string = flag.String("dstaddr", "", "DEBUG force set to destination address")
-	var proxyAddr *string = flag.String("proxyaddr", "", "proxy address")
+	showVersion := flag.Bool("V", false, "show version")
+	withDocker := flag.Bool("with-docker", false, "edit iptables rule for docker")
+	withFirewall := flag.Bool("with-fw", true, "edit iptables rule")
+	forceDstAddr := flag.String("dstaddr", "", "DEBUG force set to destination address")
+	proxyAddr := flag.String("proxyaddr", "", "proxy address")
 	var excludeAddrs excludeOptions
 	flag.Var(&excludeAddrs, "exclude", "network addr to exclude")
 	flag.Parse()
@@ -99,7 +99,7 @@ func main() {
 	}
 
 	if *forceDstAddr != "" {
-		d := Destination(*forceDstAddr)
+		d := destination(*forceDstAddr)
 		dst = &d
 	}
 	err = startServer(*proxyAddr)
@@ -109,15 +109,16 @@ func main() {
 	tearDown()
 }
 
-func getDst(c net.Conn) (Destination, error) {
+func getDst(c net.Conn) (destination, error) {
 	if dst != nil {
 		return *dst, nil
 	}
 	d, err := orgdst.GetOriginalDst(c)
-	dst := Destination(d)
+	dst := destination(d)
 	return dst, err
 }
 
+// StartProxy starts proxy process with client and proxy sockets
 func StartProxy(client net.Conn, proxy net.Conn) {
 	dst, err := getDst(client)
 	if err != nil {
