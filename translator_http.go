@@ -2,8 +2,9 @@ package traproxy
 
 import (
 	"bytes"
-	"github.com/nyushi/traproxy/http"
 	"sync"
+
+	"github.com/nyushi/traproxy/http"
 )
 
 // HTTPTranslator is translator for http connection

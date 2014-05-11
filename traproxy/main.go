@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/nyushi/traproxy"
-	"github.com/nyushi/traproxy/firewall"
-	"github.com/nyushi/traproxy/orgdst"
 	"log"
 	"net"
 	"os"
@@ -13,6 +10,10 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall"
+
+	"github.com/nyushi/traproxy"
+	"github.com/nyushi/traproxy/firewall"
+	"github.com/nyushi/traproxy/orgdst"
 )
 
 type destination string
