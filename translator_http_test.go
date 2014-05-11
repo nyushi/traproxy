@@ -51,6 +51,27 @@ func TestHTTPTranslatorStartSuccess(t *testing.T) {
 	}
 }
 
+func TestHTTPTranslatorStartHasNoHostHeader(t *testing.T) {
+	client, proxy, trans, err := getHTTPTranslator("tcp", "127.0.0.1:12345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go trans.Start()
+
+	buf := make([]byte, 1024)
+	client.Write([]byte("HEAD /test HTTP/1.0\r\n\r\n"))
+
+	s, err := proxy.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(buf[0:s])
+	expected := "HEAD http://example.com/test HTTP/1.0\r\n\r\n"
+	if got != expected {
+		t.Errorf("got=%s\nexpected=%s", got, expected)
+	}
+}
+
 func TestHTTPTranslatorStartSuccessDoNothing(t *testing.T) {
 	client, proxy, trans, err := getHTTPTranslator("tcp", "127.0.0.1:12345")
 	if err != nil {
