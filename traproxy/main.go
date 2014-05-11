@@ -68,7 +68,8 @@ func main() {
 	}
 
 	if *proxyAddr != "" {
-		excludeAddrs = append(excludeAddrs, *proxyAddr)
+		v := strings.SplitN(*proxyAddr, ":", 2)
+		excludeAddrs = append(excludeAddrs, v[0])
 	}
 	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
