@@ -67,7 +67,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	excludeAddrs = append(excludeAddrs, *proxyAddr)
+	if *proxyAddr != "" {
+		excludeAddrs = append(excludeAddrs, *proxyAddr)
+	}
 	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
 	if *withDocker {
@@ -93,9 +95,18 @@ func main() {
 	}()
 
 	if *withFirewall {
+		failed := false
 		for _, r := range redirectRules {
 			log.Println(r.GetCommandStr())
-			r.Add()
+			err := r.Add()
+			if err != nil {
+				log.Println(err)
+				failed = true
+			}
+		}
+		if failed {
+			log.Println("firewall setup failed. shutting down.")
+			tearDown()
 		}
 	}
 

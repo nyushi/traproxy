@@ -27,25 +27,25 @@ var (
 // IPTablesRule represents iptables rule line
 type IPTablesRule []string
 
-func (r *IPTablesRule) exec() ([]byte, error) {
+func (r *IPTablesRule) exec() error {
 	path, err := exec.LookPath("iptables")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	output, err := exec.Command(path, *r...).CombinedOutput()
-	return output, err
+	_, err = exec.Command(path, *r...).CombinedOutput()
+	return err
 }
 
 // Add adds iptables rule
-func (r *IPTablesRule) Add() {
+func (r *IPTablesRule) Add() error {
 	*r = append([]string{"-A"}, *r...)
-	r.exec()
+	return r.exec()
 }
 
 // Del deletes iptables rule
-func (r *IPTablesRule) Del() {
+func (r *IPTablesRule) Del() error {
 	*r = append([]string{"-D"}, *r...)
-	r.exec()
+	return r.exec()
 }
 
 // GetCommandStr returns commandline string
