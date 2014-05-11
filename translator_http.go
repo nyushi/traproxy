@@ -2,10 +2,12 @@ package traproxy
 
 import (
 	"bytes"
-	"github.com/nyushi/traproxy/http"
 	"sync"
+
+	"github.com/nyushi/traproxy/http"
 )
 
+// HTTPTranslator is translator for http connection
 type HTTPTranslator struct {
 	TranslatorBase
 
@@ -27,11 +29,16 @@ func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 				break
 			}
 			t.processingRequest = req
+			hasHostHeader := false
 			for _, h := range req.Headers {
 				if bytes.Equal(bytes.ToLower(h[0]), []byte("host")) {
+					hasHostHeader = true
 					req.SetRequestURI("http://" + string(h[1]) + string(req.ReqLineTokens[1]))
 					break
 				}
+			}
+			if !hasHostHeader {
+				req.SetRequestURI("http://" + t.Dst + string(req.ReqLineTokens[1]))
 			}
 			out = append(out, req.Bytes()...)
 		}
@@ -51,6 +58,7 @@ func (t *HTTPTranslator) filterRequest(in []byte) []byte {
 	return out
 }
 
+// Start starts translation for http
 func (t *HTTPTranslator) Start() error {
 	t.buf = []byte{}
 

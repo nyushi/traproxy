@@ -12,28 +12,28 @@ func checkRequest(expected, got *RequestHeader) error {
 		return nil
 	}
 	if expected == nil || got == nil {
-		return errors.New(fmt.Sprintf("expected=%v, got=%v", expected, got))
+		return fmt.Errorf("expected=%v, got=%v", expected, got)
 	}
 	if expected.BodyRead != got.BodyRead {
-		return errors.New(fmt.Sprintf("BodyRead not match, expected=%v, got=%v",
-			expected.BodyRead, got.BodyRead))
+		return fmt.Errorf("var BodyRead not match, expected=%v, got=%v",
+			expected.BodyRead, got.BodyRead)
 	}
 	if expected.BodySize != got.BodySize {
-		return errors.New(fmt.Sprintf("BodySize not match, expected=%v, got=%v",
-			expected.BodySize, got.BodySize))
+		return fmt.Errorf("var BodySize not match, expected=%v, got=%v",
+			expected.BodySize, got.BodySize)
 	}
 
 	expectedReqLine := bytes.Join(expected.ReqLineTokens, []byte{})
 	gotReqLine := bytes.Join(got.ReqLineTokens, []byte{})
 	if !bytes.Equal(expectedReqLine, gotReqLine) {
-		return errors.New(fmt.Sprintf("ReqLineTokens not match, expected=%v, got=%v",
-			string(expectedReqLine), string(gotReqLine)))
+		return fmt.Errorf("var ReqLineTokens not match, expected=%v, got=%v",
+			string(expectedReqLine), string(gotReqLine))
 	}
 
 	if len(expected.Headers) != len(got.Headers) {
-		return errors.New(fmt.Sprintf("Headers not match, expected=%v, got=%v",
+		return fmt.Errorf("var Headers not match, expected=%v, got=%v",
 			expected.HeadersStr(), got.HeadersStr(),
-		))
+		)
 	}
 	return nil
 }

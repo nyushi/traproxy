@@ -4,6 +4,7 @@ import (
 	"net"
 )
 
+// Pipe starts bridging with two tcp connection
 func Pipe(dst *net.TCPConn, src *net.TCPConn, f *func([]byte) []byte) error {
 	defer src.CloseRead()
 	defer dst.CloseWrite()

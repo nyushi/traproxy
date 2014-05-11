@@ -2,11 +2,11 @@ package traproxy
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"sync"
 )
 
+// HTTPSTranslator is translator for https connection
 type HTTPSTranslator struct {
 	TranslatorBase
 }
@@ -24,29 +24,30 @@ func (t *HTTPSTranslator) prepare() error {
 	req := fmt.Sprintf("CONNECT %s HTTP/1.1\r\n\r\n", t.Dst)
 	_, err := t.Proxy.Write([]byte(req))
 	if err != nil {
-		return errors.New(fmt.Sprintf("failed to write at CONNECT: %s", err.Error()))
+		return fmt.Errorf("failed to write at CONNECT: %s", err.Error())
 	}
 
 	buf := make([]byte, 1024)
 
 	size, err := t.Proxy.Read(buf)
 	if err != nil {
-		return errors.New(fmt.Sprintf("failed to read at CONNECT: %s", err.Error()))
+		return fmt.Errorf("failed to read at CONNECT: %s", err.Error())
 	}
 	ok := t.isConnectSucceeded(buf[:size])
 	if !ok {
-		return errors.New(fmt.Sprintf("error response at CONNECT request: %s", string(buf[:size])))
+		return fmt.Errorf("error response at CONNECT request: %s", string(buf[:size]))
 	}
 	return nil
 }
 
+// Start starts translation for https
 func (t *HTTPSTranslator) Start() error {
-	err := t.prepare()
+	client, proxy, err := t.CheckSockets()
 	if err != nil {
 		return err
 	}
 
-	client, proxy, err := t.CheckSockets()
+	err = t.prepare()
 	if err != nil {
 		return err
 	}

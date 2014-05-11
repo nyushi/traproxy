@@ -1,0 +1,3 @@
+#!/bin/bash
+status traproxy | grep -q "^traproxy start" > /dev/null
+[ $? -eq 0 ] && stop traproxy

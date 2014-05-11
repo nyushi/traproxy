@@ -8,8 +8,9 @@ import (
 	"syscall"
 )
 
-const SO_ORIGINAL_DST = 80
+const soOriginalDst = 80
 
+// GetOriginalDst returns original destination of Conn
 func GetOriginalDst(c net.Conn) (string, error) {
 	tcp, ok := c.(*net.TCPConn)
 	if !ok {
@@ -26,7 +27,7 @@ func GetOriginalDst(c net.Conn) (string, error) {
 		syscall.GetsockoptIPv6Mreq(
 			int(fd),
 			syscall.IPPROTO_IP,
-			SO_ORIGINAL_DST)
+			soOriginalDst)
 	if err != nil {
 		return "", err
 	}

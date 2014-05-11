@@ -1,0 +1,7 @@
+# traproxy Upstart and SysVinit configuration file
+
+# Customize location of traproxy binary (especially for development testing).
+#TRAPROXY="/usr/sbin/traproxy"
+
+# Use TRAPROXY_OPTS to modify the daemon startup options.
+#TRAPROXY_OPTS="-proxyaddr=192.168.0.1:8080 -with-docker"
