@@ -51,24 +51,21 @@ func isRecoverable(e error) bool {
 	return ne.Temporary()
 }
 
-// Wait for network interface
-func WaitForInterface(ifname string, t time.Duration) error {
+// Wait for condition
+func WaitForCond(cond func() (bool, error), timeout time.Duration) error {
 	start := time.Now()
 	for {
-		ifs, err := net.Interfaces()
+		ok, err := cond()
 		if err != nil {
 			return err
 		}
-
-		for _, i := range ifs {
-			if i.Name == ifname {
-				return nil
-			}
+		if ok {
+			return nil
 		}
 
-		if time.Now().Sub(start) > t {
-			return fmt.Errorf("timed out for %s", ifname)
+		if time.Now().Sub(start) > timeout {
+			return fmt.Errorf("timed out")
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 }

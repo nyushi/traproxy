@@ -68,8 +68,9 @@ func main() {
 	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
 	if *withDocker {
+
 		log.Printf("waiting for %s", firewall.DockerIFName)
-		if err := traproxy.WaitForInterface(firewall.DockerIFName, time.Second*60); err != nil {
+		if err := traproxy.WaitForCond(checkDockerInterface, time.Second*60); err != nil {
 			msg := fmt.Sprintf("%s", err.Error())
 			log.Fatal(msg)
 		}
@@ -198,4 +199,17 @@ func startServer(proxyAddr string) error {
 
 		go handleClient(proxyAddr, client)
 	}
+}
+
+func checkDockerInterface() (bool, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return false, err
+	}
+	for _, i := range interfaces {
+		if i.Name == firewall.DockerIFName {
+			return true, nil
+		}
+	}
+	return false, nil
 }
