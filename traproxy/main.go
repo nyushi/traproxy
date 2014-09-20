@@ -46,7 +46,7 @@ func main() {
 	withDocker := flag.Bool("with-docker", false, "edit iptables rule for docker")
 	withFirewall := flag.Bool("with-fw", true, "edit iptables rule")
 	forceDstAddr := flag.String("dstaddr", "", "DEBUG force set to destination address")
-	proxyAddr := flag.String("proxyaddr", "", "proxy address")
+	proxyAddr := flag.String("proxyaddr", "", "proxy address. '<host>:<port>'")
 	var excludeAddrs excludeOptions
 	flag.Var(&excludeAddrs, "exclude", "network addr to exclude")
 	flag.Parse()
