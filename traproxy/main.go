@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/nyushi/traproxy"
 	"github.com/nyushi/traproxy/firewall"
@@ -55,13 +56,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-
 	localAddrs, err := firewall.LocalAddrs()
 	if err != nil {
 		log.Fatal(err)
@@ -74,10 +68,23 @@ func main() {
 	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
 	if *withDocker {
+		log.Printf("waiting for %s", firewall.DockerIFName)
+		if err := traproxy.WaitForInterface(firewall.DockerIFName, time.Second*60); err != nil {
+			msg := fmt.Sprintf("%s", err.Error())
+			log.Fatal(msg)
+		}
+		log.Printf("%s detected", firewall.DockerIFName)
 		redirectRules = append(
 			redirectRules,
 			firewall.GetRedirectDockerRules(excludeAddrs)...)
 	}
+
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 
 	tearDown := func() {
 		if *withFirewall {
