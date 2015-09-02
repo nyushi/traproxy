@@ -1,10 +1,10 @@
 language: go
 go:
- - 1.2
+ - 1.5
  - release
 before_install:
  - go get github.com/mattn/goveralls
- - go get code.google.com/p/go.tools/cmd/cover
+ - go get golang.org/x/tools/cmd/cover
 script:
  - make test-cov
  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -repotoken 7tjHoI5nLA2a2Gqx15p2TBxj6muU4K7V2 || true
