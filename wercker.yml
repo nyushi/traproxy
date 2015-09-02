@@ -6,5 +6,6 @@ build:
         code: |
           mkdir -p /go/src/github.com/nyushi
           cp -r . /go/src/github.com/nyushi/traproxy
+          cd /go/src/github.com/nyushi/traproxy
           go get -d -t
           make test
