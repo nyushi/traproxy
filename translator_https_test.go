@@ -2,6 +2,7 @@ package traproxy
 
 import (
 	"net"
+	"strings"
 	"testing"
 )
 
@@ -99,7 +100,7 @@ func TestHTTPSTranslatorStartWriteError(t *testing.T) {
 	proxy := trans.Proxy.(*net.TCPConn)
 	proxy.CloseWrite()
 	err = trans.Start()
-	if err.Error() != "failed to write at CONNECT: write tcp 127.0.0.1:12345: broken pipe" {
+	if !strings.Contains(err.Error(), "failed to write at CONNECT:") {
 		t.Error("write error not returned")
 	}
 }
