@@ -1,7 +1,9 @@
 package traproxy
 
 import (
+	"fmt"
 	"net"
+	"time"
 )
 
 // Pipe starts bridging with two tcp connection
@@ -47,4 +49,23 @@ func isRecoverable(e error) bool {
 		return false
 	}
 	return ne.Temporary()
+}
+
+// Wait for condition
+func WaitForCond(cond func() (bool, error), timeout time.Duration) error {
+	start := time.Now()
+	for {
+		ok, err := cond()
+		if err != nil {
+			return err
+		}
+		if ok {
+			return nil
+		}
+
+		if time.Now().Sub(start) > timeout {
+			return fmt.Errorf("timed out")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }

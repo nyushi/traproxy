@@ -7,11 +7,13 @@ import (
 )
 
 var (
+	// Name of docker interface
+	DockerIFName = "docker0"
+
 	redirect        = "REDIRECT"
 	accept          = "ACCEPT"
 	outputChain     = "OUTPUT"
 	preroutingChain = "PREROUTING"
-	dockerIFName    = "docker0"
 	rule            = map[string][]string{
 		"http": []string{
 			"--dport", "80",
@@ -69,11 +71,11 @@ func GetRedirectRules(excludes []string) []IPTablesRule {
 func GetRedirectDockerRules(excludes []string) []IPTablesRule {
 	rules := []IPTablesRule{}
 	for _, addr := range excludes {
-		rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", accept, "-d", addr, "-i", dockerIFName})
+		rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", accept, "-d", addr, "-i", DockerIFName})
 	}
 
-	rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "80", "--to-ports", "10080", "-i", dockerIFName})
-	rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "443", "--to-ports", "10080", "-i", dockerIFName})
+	rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "80", "--to-ports", "10080", "-i", DockerIFName})
+	rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "443", "--to-ports", "10080", "-i", DockerIFName})
 	return rules
 }
 

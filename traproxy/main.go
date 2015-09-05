@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/nyushi/traproxy"
 	"github.com/nyushi/traproxy/firewall"
@@ -45,7 +46,7 @@ func main() {
 	withDocker := flag.Bool("with-docker", false, "edit iptables rule for docker")
 	withFirewall := flag.Bool("with-fw", true, "edit iptables rule")
 	forceDstAddr := flag.String("dstaddr", "", "DEBUG force set to destination address")
-	proxyAddr := flag.String("proxyaddr", "", "proxy address")
+	proxyAddr := flag.String("proxyaddr", "", "proxy address. '<host>:<port>'")
 	var excludeAddrs excludeOptions
 	flag.Var(&excludeAddrs, "exclude", "network addr to exclude")
 	flag.Parse()
@@ -54,13 +55,6 @@ func main() {
 		fmt.Printf("%s(%s)\n", traproxy.Version, traproxy.GitHash)
 		os.Exit(0)
 	}
-
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
 
 	localAddrs, err := firewall.LocalAddrs()
 	if err != nil {
@@ -74,10 +68,24 @@ func main() {
 	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
 	if *withDocker {
+
+		log.Printf("waiting for %s", firewall.DockerIFName)
+		if err := traproxy.WaitForCond(checkDockerInterface, time.Second*60); err != nil {
+			msg := fmt.Sprintf("%s", err.Error())
+			log.Fatal(msg)
+		}
+		log.Printf("%s detected", firewall.DockerIFName)
 		redirectRules = append(
 			redirectRules,
 			firewall.GetRedirectDockerRules(excludeAddrs)...)
 	}
+
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 
 	tearDown := func() {
 		if *withFirewall {
@@ -191,4 +199,17 @@ func startServer(proxyAddr string) error {
 
 		go handleClient(proxyAddr, client)
 	}
+}
+
+func checkDockerInterface() (bool, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return false, err
+	}
+	for _, i := range interfaces {
+		if i.Name == firewall.DockerIFName {
+			return true, nil
+		}
+	}
+	return false, nil
 }

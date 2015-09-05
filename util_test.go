@@ -1,8 +1,10 @@
 package traproxy
 
 import (
+	"fmt"
 	"net"
 	"testing"
+	"time"
 )
 
 func getSockets() (a1, a2, b1, b2 *net.TCPConn, e error) {
@@ -68,5 +70,37 @@ func TestPipe(t *testing.T) {
 	}
 	if string(rb[:size]) != "123" {
 		t.Errorf("read data error: expected='123', got=%s", string(rb[:size]))
+	}
+}
+
+func TestWaitForCodn(t *testing.T) {
+	start := time.Now()
+	WaitForCond(func() (bool, error) { return true, nil }, time.Second)
+	if time.Now().Sub(start) > time.Second {
+		t.Errorf("not returned soon")
+	}
+
+	val := true
+	start = time.Now()
+	WaitForCond(func() (bool, error) {
+		// first call is false
+		// second call is true
+		val = !val
+		return val, nil
+	}, time.Second)
+	if time.Now().Sub(start) > time.Second {
+		t.Errorf("not returned soon")
+	}
+
+	start = time.Now()
+	WaitForCond(func() (bool, error) { return false, nil }, time.Second)
+	if time.Now().Sub(start) < time.Second {
+		t.Errorf("returned soon")
+	}
+
+	start = time.Now()
+	err := WaitForCond(func() (bool, error) { return false, fmt.Errorf("err") }, time.Second)
+	if err == nil {
+		t.Errorf("error not returned")
 	}
 }
