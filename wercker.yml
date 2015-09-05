@@ -9,3 +9,24 @@ build:
           cd /go/src/github.com/nyushi/traproxy
           go get -d -t
           make test
+          ./release_build.sh
+          cp VERSION traproxy/*.tar.gz $WERCKER_OUTPUT_DIR
+deploy:
+  steps:
+    - script:
+      name: get version
+      code: |
+        apt-get update && apt-get install -y file
+        export APP_VERSION=$(cat VERSION)
+    - github-create-release:
+      token: $GITHUB_TOKEN
+      tag: $APP_VERSION
+    - github-upload-asset:
+      token: $GITHUB_TOKEN
+      file: traproxy_linux_amd64.tar.gz
+    - github-upload-asset:
+      token: $GITHUB_TOKEN
+      file: traproxy_linux_386.tar.gz
+    - github-upload-asset:
+      token: $GITHUB_TOKEN
+      file: traproxy_linux_arm.tar.gz
