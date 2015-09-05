@@ -7,4 +7,4 @@ before_install:
  - go get golang.org/x/tools/cmd/cover
 script:
  - make test-cov
- - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -repotoken 7tjHoI5nLA2a2Gqx15p2TBxj6muU4K7V2 || true
+ - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -repotoken $COVERALL_TOKEN || true

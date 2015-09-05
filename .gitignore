@@ -1,4 +1,5 @@
 traproxy/traproxy
+traproxy/*.tar.gz
 *coverage.out
 **/*.test
 .vagrant
