@@ -1,4 +1,4 @@
-0.1.6 (unreleased)
+0.1.6 (2015-09-05)
 ------------------
 
 - fix initialization in -with-docker option
