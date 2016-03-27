@@ -3,7 +3,7 @@ VERSION=$(shell cat VERSION)
 GITHASH=$(shell git rev-parse HEAD)
 
 traproxy/traproxy: $(SOURCES) VERSION
-	cd traproxy && go build -ldflags "-X github.com/nyushi/traproxy.Version $(VERSION) -X github.com/nyushi/traproxy.GitHash $(GITHASH)"
+	cd traproxy && go build -ldflags "-X github.com/nyushi/traproxy.Version=$(VERSION) -X github.com/nyushi/traproxy.GitHash=$(GITHASH)"
 
 
 test:
