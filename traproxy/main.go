@@ -43,8 +43,10 @@ func (e *excludeOptions) Set(val string) error {
 
 func main() {
 	showVersion := flag.Bool("V", false, "show version")
-	withDocker := flag.Bool("with-docker", false, "edit iptables rule for docker")
+	withDocker := flag.Bool("with-docker", false, "DEPRECATED: edit iptables rule for docker.")
 	withFirewall := flag.Bool("with-fw", true, "edit iptables rule")
+	withFirewallNat := flag.Bool("with-fw-nat", true, "edit iptables rule with nat")
+	excludeReservedAddrs := flag.Bool("exclude-reserved-addrs", false, "exclude reserved ip addresses")
 	forceDstAddr := flag.String("dstaddr", "", "DEBUG force set to destination address")
 	proxyAddr := flag.String("proxyaddr", "", "proxy address. '<host>:<port>'")
 	var excludeAddrs excludeOptions
@@ -66,7 +68,15 @@ func main() {
 		excludeAddrs = append(excludeAddrs, v[0])
 	}
 	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
+	if *excludeReservedAddrs {
+		excludeAddrs = append(excludeAddrs, firewall.ReservedV4Addrs()...)
+	}
 	redirectRules := firewall.GetRedirectRules(excludeAddrs)
+
+	if *withFirewallNat {
+		redirectRules = append(redirectRules, firewall.GetRedirectNATRules(excludeAddrs)...)
+	}
+
 	if *withDocker {
 
 		log.Printf("waiting for %s", firewall.DockerIFName)
