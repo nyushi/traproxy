@@ -90,8 +90,10 @@ func main() {
 	tearDown := func() {
 		if *withFirewall {
 			for _, r := range redirectRules {
-				log.Println(r.GetCommandStr())
-				r.Del()
+				log.Printf("-D %s\n", r.GetCommandStr())
+				if err := r.Del(); err != nil {
+					log.Printf("failed to execute iptables command: %s", err)
+				}
 			}
 		}
 		log.Println("finished")
@@ -106,10 +108,10 @@ func main() {
 	if *withFirewall {
 		failed := false
 		for _, r := range redirectRules {
-			log.Println(r.GetCommandStr())
+			log.Printf("-A %s\n", r.GetCommandStr())
 			err := r.Add()
 			if err != nil {
-				log.Println(err)
+				log.Printf("failed to execute iptables command: %s", err)
 				failed = true
 			}
 		}
