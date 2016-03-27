@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	// Name of docker interface
+	// DockerIFName is name of docker interface
 	DockerIFName = "docker0"
 
 	redirect        = "REDIRECT"
@@ -79,6 +79,7 @@ func GetRedirectDockerRules(excludes []string) []IPTablesRule {
 	return rules
 }
 
+// GetRedirectNATRules returns iptables rules for nat
 func GetRedirectNATRules(excludes []string) []IPTablesRule {
 	rules := []IPTablesRule{}
 	for _, addr := range excludes {

@@ -51,7 +51,7 @@ func isRecoverable(e error) bool {
 	return ne.Temporary()
 }
 
-// Wait for condition
+// WaitForCond wait until condition is true
 func WaitForCond(cond func() (bool, error), timeout time.Duration) error {
 	start := time.Now()
 	for {
