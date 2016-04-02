@@ -46,7 +46,7 @@ func main() {
 	withDocker := flag.Bool("with-docker", false, "DEPRECATED: edit iptables rule for docker.")
 	withFirewall := flag.Bool("with-fw", true, "edit iptables rule")
 	withFirewallNat := flag.Bool("with-fw-nat", true, "edit iptables rule with nat")
-	excludeReservedAddrs := flag.Bool("exclude-reserved-addrs", false, "exclude reserved ip addresses")
+	excludeReservedAddrs := flag.Bool("exclude-reserved-addrs", true, "exclude reserved ip addresses")
 	forceDstAddr := flag.String("dstaddr", "", "DEBUG force set to destination address")
 	proxyAddr := flag.String("proxyaddr", "", "proxy address. '<host>:<port>'")
 	var excludeAddrs excludeOptions
