@@ -25,5 +25,5 @@ go get github.com/nuyshi/traproxy/traproxy
 # How to use
 
 ```
-traproxy --proxyaddr <proxy_host>:<proxy_port>
+traproxy -proxyaddr <proxy_host>:<proxy_port>
 ```
