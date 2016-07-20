@@ -1,6 +1,7 @@
 package traproxy
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"testing"
@@ -102,5 +103,25 @@ func TestWaitForCodn(t *testing.T) {
 	err := WaitForCond(func() (bool, error) { return false, fmt.Errorf("err") }, time.Second)
 	if err == nil {
 		t.Errorf("error not returned")
+	}
+}
+
+type dummyConn struct {
+	*bytes.Buffer
+}
+
+func (d *dummyConn) CloseRead() error {
+	return nil
+}
+func (d *dummyConn) CloseWrite() error {
+	return nil
+}
+
+func BenchmarkPipe(b *testing.B) {
+	data := make([]byte, 1024*1024)
+	con1 := &dummyConn{bytes.NewBuffer(data)}
+	con2 := &dummyConn{&bytes.Buffer{}}
+	for i := 0; i < b.N; i++ {
+		Pipe(con1, con2, nil)
 	}
 }

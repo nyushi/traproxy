@@ -2,12 +2,19 @@ package traproxy
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"time"
 )
 
+type tcpconn interface {
+	io.ReadWriter
+	CloseRead() error
+	CloseWrite() error
+}
+
 // Pipe starts bridging with two tcp connection
-func Pipe(dst *net.TCPConn, src *net.TCPConn, f *func([]byte) []byte) error {
+func Pipe(dst tcpconn, src tcpconn, f *func([]byte) []byte) error {
 	defer src.CloseRead()
 	defer dst.CloseWrite()
 

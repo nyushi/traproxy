@@ -22,6 +22,9 @@ test-cov: _test-cov
 test-cov-html: _test-cov
 	@go tool cover -html=coverage.out
 
+bench:
+	@go test -bench . -benchmem
+
 clean:
 	rm -rf *.test */*.test *coverage.out traproxy/traproxy
 
