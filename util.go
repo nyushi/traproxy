@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -13,12 +14,21 @@ type tcpconn interface {
 	CloseWrite() error
 }
 
+var pipeBufPool = sync.Pool{
+	New: func() interface{} {
+		return make([]byte, 4096)
+	},
+}
+
 // Pipe starts bridging with two tcp connection
 func Pipe(dst tcpconn, src tcpconn, f *func([]byte) []byte) error {
 	defer src.CloseRead()
 	defer dst.CloseWrite()
 
-	rb := make([]byte, 4096)
+	rb := pipeBufPool.Get().([]byte)
+	defer func() {
+		pipeBufPool.Put(rb)
+	}()
 
 	for {
 		rsize, err := src.Read(rb)
