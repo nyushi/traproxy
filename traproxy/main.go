@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"syscall"
@@ -56,24 +57,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	localAddrs, err := firewall.LocalAddrs()
-	if err != nil {
-		log.Fatal(err)
+	fwc := &firewall.Config{
+		ProxyAddr:       proxyAddr,
+		WithNat:         *withFirewallNat,
+		ExcludeReserved: *excludeReservedAddrs,
+		Excludes:        excludeAddrs,
 	}
-
-	if *proxyAddr != "" {
-		v := strings.SplitN(*proxyAddr, ":", 2)
-		excludeAddrs = append(excludeAddrs, v[0])
+	if *withFirewall {
+		switch runtime.GOOS {
+		case "linux":
+			fwc.FWType = firewall.FWIPTables
+		}
 	}
-	excludeAddrs = append(excludeAddrs, firewall.GrepV4Addr(localAddrs)...)
-	if *excludeReservedAddrs {
-		excludeAddrs = append(excludeAddrs, firewall.ReservedV4Addrs()...)
-	}
-	redirectRules := firewall.GetRedirectRules(excludeAddrs)
-
-	if *withFirewallNat {
-		redirectRules = append(redirectRules, firewall.GetRedirectNATRules(excludeAddrs)...)
-	}
+	fw := firewall.New(fwc)
 
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
@@ -83,13 +79,8 @@ func main() {
 		syscall.SIGQUIT)
 
 	tearDown := func() {
-		if *withFirewall {
-			for _, r := range redirectRules {
-				log.Printf("-D %s\n", r.GetCommandStr())
-				if err := r.Del(); err != nil {
-					log.Printf("failed to execute iptables command: %s", err)
-				}
-			}
+		if err := fw.Teardown(); err != nil {
+			log.Printf("error at teardown: %s", err)
 		}
 		log.Println("finished")
 		os.Exit(0)
@@ -101,17 +92,8 @@ func main() {
 	}()
 
 	if *withFirewall {
-		failed := false
-		for _, r := range redirectRules {
-			log.Printf("-A %s\n", r.GetCommandStr())
-			err := r.Add()
-			if err != nil {
-				log.Printf("failed to execute iptables command: %s", err)
-				failed = true
-			}
-		}
-		if failed {
-			log.Println("firewall setup failed. shutting down.")
+		if err := fw.Setup(); err != nil {
+			log.Printf("firewall setup failed. shutting down: %s", err)
 			tearDown()
 		}
 	}
@@ -120,8 +102,7 @@ func main() {
 		d := destination(*forceDstAddr)
 		dst = &d
 	}
-	err = startServer(*proxyAddr)
-	if err != nil {
+	if err := startServer(*proxyAddr); err != nil {
 		log.Println(err)
 	}
 	tearDown()
