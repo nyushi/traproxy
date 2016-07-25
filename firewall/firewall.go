@@ -44,11 +44,40 @@ func (c *Config) ProxyHost() (*string, error) {
 	return &host, nil
 }
 
+func (c *Config) ExcludeAddrs() ([]string, error) {
+	// exclude user specified addrs
+	e := make([]string, len(c.Excludes))
+	copy(e, c.Excludes)
+
+	// exclude proxy host addr
+	host, err := c.ProxyHost()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get proxy host: %s", err)
+	}
+	if host != nil {
+		e = append(e, *host)
+	}
+
+	// exclude local addrs
+	locals, err := LocalAddrs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to getlocal address: %s", err)
+	}
+	e = append(e, GrepV4Addr(locals)...)
+
+	// exclude reserved addrs
+	e = append(e, ReservedV4Addrs()...)
+
+	return e, nil
+}
+
 // New creates firewall by config
 func New(c *Config) Firewall {
 	switch c.FWType {
 	case FWIPTables:
 		return &iptablesFirewall{c}
+	case FWPF:
+		return &pfFirewall{c}
 	default:
 		return &nopFirewall{}
 	}
@@ -103,7 +132,7 @@ func (i *iptablesFirewall) do(add bool) error {
 
 }
 func (i *iptablesFirewall) rules() ([]IPTablesRule, error) {
-	e, err := i.excludes()
+	e, err := i.c.ExcludeAddrs()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get exclude addrs: %s", err)
 	}
@@ -114,31 +143,20 @@ func (i *iptablesFirewall) rules() ([]IPTablesRule, error) {
 	return rules, nil
 }
 
-func (i *iptablesFirewall) excludes() ([]string, error) {
-	// exclude user specified addrs
-	e := make([]string, len(i.c.Excludes))
-	copy(e, i.c.Excludes)
+type pfFirewall struct {
+	c *Config
+}
 
-	// exclude proxy host addr
-	host, err := i.c.ProxyHost()
+func (p *pfFirewall) Setup() error {
+	excludes, err := p.c.ExcludeAddrs()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get proxy host: %s", err)
+		return fmt.Errorf("failed to get exclude addrs: %s", err)
 	}
-	if host != nil {
-		e = append(e, *host)
-	}
+	return SetPFRule(excludes)
+}
 
-	// exclude local addrs
-	locals, err := LocalAddrs()
-	if err != nil {
-		return nil, fmt.Errorf("failed to getlocal address: %s", err)
-	}
-	e = append(e, GrepV4Addr(locals)...)
-
-	// exclude reserved addrs
-	e = append(e, ReservedV4Addrs()...)
-
-	return e, nil
+func (p *pfFirewall) Teardown() error {
+	return ResetPFRule()
 }
 
 // LocalAddrs returns assigned local address

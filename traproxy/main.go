@@ -67,6 +67,8 @@ func main() {
 		switch runtime.GOOS {
 		case "linux":
 			fwc.FWType = firewall.FWIPTables
+		case "darwin":
+			fwc.FWType = firewall.FWPF
 		}
 	}
 	fw := firewall.New(fwc)
