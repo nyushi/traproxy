@@ -10,7 +10,6 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/nyushi/traproxy"
 	"github.com/nyushi/traproxy/firewall"
@@ -43,7 +42,6 @@ func (e *excludeOptions) Set(val string) error {
 
 func main() {
 	showVersion := flag.Bool("V", false, "show version")
-	withDocker := flag.Bool("with-docker", false, "DEPRECATED: edit iptables rule for docker.")
 	withFirewall := flag.Bool("with-fw", true, "edit iptables rule")
 	withFirewallNat := flag.Bool("with-fw-nat", true, "edit iptables rule with nat")
 	excludeReservedAddrs := flag.Bool("exclude-reserved-addrs", true, "exclude reserved ip addresses")
@@ -75,19 +73,6 @@ func main() {
 
 	if *withFirewallNat {
 		redirectRules = append(redirectRules, firewall.GetRedirectNATRules(excludeAddrs)...)
-	}
-
-	if *withDocker {
-
-		log.Printf("waiting for %s", firewall.DockerIFName)
-		if err := traproxy.WaitForCond(checkDockerInterface, time.Second*60); err != nil {
-			msg := fmt.Sprintf("%s", err.Error())
-			log.Fatal(msg)
-		}
-		log.Printf("%s detected", firewall.DockerIFName)
-		redirectRules = append(
-			redirectRules,
-			firewall.GetRedirectDockerRules(excludeAddrs)...)
 	}
 
 	sigc := make(chan os.Signal, 1)
@@ -211,17 +196,4 @@ func startServer(proxyAddr string) error {
 
 		go handleClient(proxyAddr, client)
 	}
-}
-
-func checkDockerInterface() (bool, error) {
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return false, err
-	}
-	for _, i := range interfaces {
-		if i.Name == firewall.DockerIFName {
-			return true, nil
-		}
-	}
-	return false, nil
 }

@@ -7,23 +7,10 @@ import (
 )
 
 var (
-	// DockerIFName is name of docker interface
-	DockerIFName = "docker0"
-
 	redirect        = "REDIRECT"
 	accept          = "ACCEPT"
 	outputChain     = "OUTPUT"
 	preroutingChain = "PREROUTING"
-	rule            = map[string][]string{
-		"http": []string{
-			"--dport", "80",
-			"--to-ports", "10080",
-		},
-		"https": []string{
-			"--dport", "443",
-			"--to-ports", "10080",
-		},
-	}
 )
 
 // IPTablesRule represents iptables rule line
@@ -64,18 +51,6 @@ func GetRedirectRules(excludes []string) []IPTablesRule {
 
 	rules = append(rules, []string{outputChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "80", "--to-ports", "10080"})
 	rules = append(rules, []string{outputChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "443", "--to-ports", "10080"})
-	return rules
-}
-
-// GetRedirectDockerRules returns iptables rules for docker containers
-func GetRedirectDockerRules(excludes []string) []IPTablesRule {
-	rules := []IPTablesRule{}
-	for _, addr := range excludes {
-		rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", accept, "-d", addr, "-i", DockerIFName})
-	}
-
-	rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "80", "--to-ports", "10080", "-i", DockerIFName})
-	rules = append(rules, []string{preroutingChain, "-t", "nat", "-p", "tcp", "-j", redirect, "--dport", "443", "--to-ports", "10080", "-i", DockerIFName})
 	return rules
 }
 
