@@ -42,12 +42,18 @@ func (e *excludeOptions) Set(val string) error {
 }
 
 func main() {
+	var withFirewallNat *bool
 	showVersion := flag.Bool("V", false, "show version")
 	withFirewall := flag.Bool("with-fw", true, "edit iptables rule")
-	withFirewallNat := flag.Bool("with-fw-nat", true, "edit iptables rule with nat")
 	excludeReservedAddrs := flag.Bool("exclude-reserved-addrs", true, "exclude reserved ip addresses")
 	forceDstAddr := flag.String("dstaddr", "", "DEBUG force set to destination address")
 	proxyAddr := flag.String("proxyaddr", "", "proxy address. '<host>:<port>'")
+	if runtime.GOOS == "linux" {
+		withFirewallNat = flag.Bool("with-fw-nat", true, "edit iptables rule with nat")
+	} else {
+		b := true
+		withFirewallNat = &b
+	}
 	var excludeAddrs excludeOptions
 	flag.Var(&excludeAddrs, "exclude", "network addr to exclude")
 	flag.Parse()
