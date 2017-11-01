@@ -19,7 +19,7 @@ Currently only supports linux.
 # Installation
 
 ```
-go get github.com/nuyshi/traproxy/traproxy
+go get github.com/nyushi/traproxy/traproxy
 ```
 
 # How to use
